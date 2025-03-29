@@ -4,13 +4,15 @@ import type React from "react"
 
 import { useState } from "react"
 import { Upload, FileText, Loader2 } from "lucide-react"
-
-import { CV2text } from "@/lib/ai"
+import { CV2text } from "@/lib/services/ai-service"
 
 interface CVUploadProps {
   onCvTextExtracted: (text: string) => void
 }
 
+/**
+ * Component for uploading and processing a single CV
+ */
 export function CVUpload({ onCvTextExtracted }: CVUploadProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [fileName, setFileName] = useState<string | null>(null)

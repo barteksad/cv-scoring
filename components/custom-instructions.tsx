@@ -11,6 +11,9 @@ interface CustomInstructionsProps {
   onSave: (instructions: string) => void
 }
 
+/**
+ * Component for editing custom AI instructions
+ */
 export function CustomInstructions({ instructions, onSave }: CustomInstructionsProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editedInstructions, setEditedInstructions] = useState(instructions)
