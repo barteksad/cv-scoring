@@ -1,11 +1,12 @@
 "use client"
 
-import type { Question, QuestionResult } from "@/lib/types"
-import { Trash2, Loader2, Info } from "lucide-react"
+import { Trash2, Loader2, Info, Filter } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { getScoreColorClass } from "@/lib/utils/score-utils"
+import type { Question, QuestionResult } from "@/lib/types"
 
 interface QuestionItemProps {
   question: Question
@@ -14,16 +15,10 @@ interface QuestionItemProps {
   onDelete: () => void
 }
 
+/**
+ * Component for displaying a single question and its result
+ */
 export function QuestionItem({ question, result, isLoading, onDelete }: QuestionItemProps) {
-  // Function to get color based on score
-  const getScoreColor = (score: number): string => {
-    if (score >= 8) return "bg-green-500"
-    if (score >= 6) return "bg-blue-500"
-    if (score >= 4) return "bg-yellow-500"
-    if (score >= 2) return "bg-orange-500"
-    return "bg-red-500"
-  }
-
   return (
     <Card>
       <CardHeader className="pb-2 flex flex-row items-start justify-between">
@@ -52,6 +47,16 @@ export function QuestionItem({ question, result, isLoading, onDelete }: Question
             {question.type === "score" && question.weight > 1 && (
               <Badge variant="secondary">Weight: {question.weight}</Badge>
             )}
+            {question.type === "yesno" && question.isFilter && (
+              <Badge variant="destructive" className="flex items-center gap-1">
+                <Filter className="h-3 w-3" />
+                Filter: Must be {question.expectedAnswer ? "Yes" : "No"}
+              </Badge>
+            )}
+            {question.type === "yesno" &&
+              !question.isFilter &&
+              question.points !== undefined &&
+              question.points !== 10 && <Badge variant="secondary">Points: {question.points}</Badge>}
           </div>
         </div>
         <button
@@ -81,7 +86,7 @@ export function QuestionItem({ question, result, isLoading, onDelete }: Question
                 <Progress
                   value={Number(result.value) * 10}
                   className="h-2"
-                  indicatorClassName={getScoreColor(Number(result.value))}
+                  indicatorClassName={getScoreColorClass(Number(result.value) * 10)}
                 />
               </>
             ) : (
@@ -89,6 +94,13 @@ export function QuestionItem({ question, result, isLoading, onDelete }: Question
                 <Badge variant={result.value ? "success" : "destructive"} className="mr-2">
                   {result.value ? "Yes" : "No"}
                 </Badge>
+                {question.isFilter && (
+                  <span className="text-sm ml-2">
+                    {result.value === question.expectedAnswer
+                      ? "✓ Meets filter criteria"
+                      : "✗ Does not meet filter criteria"}
+                  </span>
+                )}
               </div>
             )}
 

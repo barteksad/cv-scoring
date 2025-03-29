@@ -2,12 +2,75 @@
 
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
-import type { Question, QuestionResult } from "./types"
+import type { Question, QuestionResult } from "../types"
 
-export async function analyzeCV(cvText: string, question: Question, customInstructions = ""): Promise<QuestionResult> {
-  try {
-    let prompt = ""
+/**
+ * AI Service - Handles all interactions with AI models
+ */
+class AIService {
+  /**
+   * Analyzes a CV against a specific question using AI
+   *
+   * @param cvText - The text content of the CV
+   * @param question - The question to evaluate against
+   * @param customInstructions - Optional custom instructions for the AI
+   * @returns A promise resolving to the question result
+   */
+  static async analyzeCV(cvText: string, question: Question, customInstructions = ""): Promise<QuestionResult> {
+    try {
+      const { systemPrompt, prompt } = this.buildPrompts(cvText, question, customInstructions)
+
+      const { text } = await generateText({
+        model: openai("gpt-4o-mini"),
+        system: systemPrompt,
+        prompt: prompt,
+      })
+
+      return this.parseAIResponse(text, question)
+    } catch (error) {
+      console.error("Error calling AI service:", error)
+      throw error
+    }
+  }
+
+  /**
+   * Extracts text content from a CV file using AI
+   *
+   * @param file - The CV file to process
+   * @returns A promise resolving to the extracted text
+   */
+  static async extractTextFromCV(file: File): Promise<string> {
+    const { text } = await generateText({
+      model: openai("gpt-4o-mini"),
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: "Parse and extract all information from the CV file and write it in a text format. Write only the text content of the CV without any additional comments or formatting.",
+            },
+            {
+              type: "file",
+              data: await file.arrayBuffer(),
+              mimeType: "application/pdf",
+            },
+          ],
+        },
+      ],
+    })
+
+    return text
+  }
+
+  /**
+   * Builds the system prompt and user prompt for the AI
+   *
+   * @private
+   */
+  private static buildPrompts(cvText: string, question: Question, customInstructions: string) {
     let systemPrompt = ""
+    let prompt = ""
 
     if (question.type === "score") {
       systemPrompt = `
@@ -68,13 +131,15 @@ export async function analyzeCV(cvText: string, question: Question, customInstru
       `
     }
 
-    const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
-      system: systemPrompt,
-      prompt: prompt,
-    })
+    return { systemPrompt, prompt }
+  }
 
-    // Parse the response
+  /**
+   * Parses the AI response into a structured QuestionResult
+   *
+   * @private
+   */
+  private static parseAIResponse(text: string, question: Question): QuestionResult {
     try {
       // Extract JSON from potential markdown code blocks
       let jsonText = text
@@ -113,32 +178,10 @@ export async function analyzeCV(cvText: string, question: Question, customInstru
         explanation: "Could not analyze properly. Please try again.",
       }
     }
-  } catch (error) {
-    console.error("Error calling AI service:", error)
-    throw error
   }
 }
 
-export async function CV2text(file: File): Promise<string> {
-  const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
-      messages: [
-      {
-        role: 'user',
-        content: [
-          {
-            type: 'text',
-            text: 'Parse and extract all information from the CV file and write it in a text format. Write only the text content of the CV without any additional comments or formatting.',
-          },
-          {
-            type: 'file',
-            data: await file.arrayBuffer(),
-            mimeType: 'application/pdf',
-          },
-        ],
-      },
-    ],
-    });
+// Export convenience functions for easier imports
+export const analyzeCV = AIService.analyzeCV.bind(AIService)
+export const CV2text = AIService.extractTextFromCV.bind(AIService)
 
-  return text
-}
