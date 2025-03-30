@@ -2,7 +2,13 @@
 
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
-import type { Question, QuestionResult } from "../types"
+import { createProviderRegistry } from 'ai';
+import { google } from '@ai-sdk/google';
+import type { Question, QuestionResult } from "@/lib/types"
+
+const registry = createProviderRegistry({
+  google, openai,
+});
 
 /**
  * AI Service - Handles all interactions with AI models
@@ -21,7 +27,8 @@ class AIService {
       const { systemPrompt, prompt } = this.buildPrompts(cvText, question, customInstructions)
 
       const { text } = await generateText({
-        model: openai("gpt-4o-mini"),
+        // model: registry.languageModel("openai:gpt-4o-mini"),
+        model: registry.languageModel("google:gemini-2.0-flash-lite"),
         system: systemPrompt,
         prompt: prompt,
       })
@@ -41,7 +48,7 @@ class AIService {
    */
   static async extractTextFromCV(file: File): Promise<string> {
     const { text } = await generateText({
-      model: openai("gpt-4o-mini"),
+      model: registry.languageModel("google:gemini-2.0-flash-lite"),
       messages: [
         {
           role: "user",
